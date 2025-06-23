@@ -40,9 +40,10 @@ def handler(event, _):
                         inferenceConfig={"maxTokens": 800},
                 )
                 correction = resp["output"]["message"]["content"][0]["text"]
-                correction = correction.split('【Start】')[1].split('【End】')[0]
+                if '【Start】' in correction:
+                    correction = correction.split('【Start】')[1]
+                correction = correction.split('【End】')[0]
                 outputtext = outputtext + correction + '\n'
-                outputtext = outputtext
 
         out_key = "outputs/correction.txt"
         s3.put_object(Bucket=bucket, Key=out_key,
