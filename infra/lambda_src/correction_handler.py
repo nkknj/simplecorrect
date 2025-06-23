@@ -13,6 +13,22 @@ def digitonly(text):
             return False
     return True
 
+def correct_text(text):
+    user_message = f"次に示す文章から、「あー」「えー」などのフィラーを削除したものを、【Start】【End】で括って出力してください。\n\n{text}"
+    resp = bedrock.converse(
+            modelId=MODEL_ID,
+            messages=[{
+                "role": "user",
+                "content": [{"text": user_message}]
+            }],
+            inferenceConfig={"maxTokens": 800},
+    )
+    corrected = resp["output"]["message"]["content"][0]["text"]
+    if '【Start】' in correction:
+        corrected = corrected.split('【Start】')[1]
+    corrected = corrected.split('【End】')[0]
+    return corrected
+
 def handler(event, _):
     for rec in event["Records"]:
         bucket = rec["s3"]["bucket"]["name"]
@@ -30,20 +46,8 @@ def handler(event, _):
             if digitonly(t):
                 outputtext = outputtext + t + '\n'
             else:
-                user_message = f"次に示す文章から、「あー」「えー」などのフィラーを削除したものを、【Start】【End】で括って出力してください。\n\n{t}"
-                resp = bedrock.converse(
-                        modelId=MODEL_ID,
-                        messages=[{
-                            "role": "user",
-                            "content": [{"text": user_message}]
-                        }],
-                        inferenceConfig={"maxTokens": 800},
-                )
-                correction = resp["output"]["message"]["content"][0]["text"]
-                if '【Start】' in correction:
-                    correction = correction.split('【Start】')[1]
-                correction = correction.split('【End】')[0]
-                outputtext = outputtext + correction + '\n'
+                corrected = correct_text(t)
+                outputtext = outputtext + corrected + '\n'
 
         out_key = "outputs/correction.txt"
         s3.put_object(Bucket=bucket, Key=out_key,
