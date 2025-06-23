@@ -7,11 +7,11 @@ MODEL_ID = "amazon.nova-micro-v1:0"
 s3 = boto3.client("s3")
 bedrock = boto3.client("bedrock-runtime", region_name=BEDROCK_REGION)
 
-def contain_word(text):
+def digitonly(text):
     for char in text:
-        if char not in string.punctuation and not char.isdigit():
-            return True
-    return False
+        if char not in string.punctuation and not char.isdigit() and char != ' ':
+            return False
+    return True
 
 def handler(event, _):
     for rec in event["Records"]:
@@ -22,25 +22,27 @@ def handler(event, _):
 
         obj = s3.get_object(Bucket=bucket, Key=key)
         text = obj["Body"].read().decode()
-
         textlist = text.split('\n')
+
         outputtext = ''
+
         for t in textlist:
-            if contain_word(t) is False:
+            if digitonly(t):
                 outputtext = outputtext + t + '\n'
-                continue
-            user_message = f"次に示す文章から、「あー」「えー」などのフィラーを削除したものを、【Start】【End】で括って出力してください。\n\n{t}"
-            resp = bedrock.converse(
-                    modelId=MODEL_ID,
-                    messages=[{
-                        "role": "user",
-                        "content": [{"text": user_message}]
-                    }],
-                    inferenceConfig={"maxTokens": 800},
-            )
-            correction = resp["output"]["message"]["content"][0]["text"]
-            correction = correction.split('【Start】')[1].split('【End】')[0]
-            outputtext = outputtext + t +'\n'
+            else:
+                user_message = f"次に示す文章から、「あー」「えー」などのフィラーを削除したものを、【Start】【End】で括って出力してください。\n\n{t}"
+                resp = bedrock.converse(
+                        modelId=MODEL_ID,
+                        messages=[{
+                            "role": "user",
+                            "content": [{"text": user_message}]
+                        }],
+                        inferenceConfig={"maxTokens": 800},
+                )
+                correction = resp["output"]["message"]["content"][0]["text"]
+                correction = correction.split('【Start】')[1].split('【End】')[0]
+                outputtext = outputtext + correction + '\n'
+                outputtext = outputtext + f'LOG\ntext=\n{t}'
 
         out_key = "outputs/correction.txt"
         s3.put_object(Bucket=bucket, Key=out_key,
