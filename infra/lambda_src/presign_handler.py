@@ -43,23 +43,26 @@ def handler(event, _):
 
     # -------- Download --------
     if path.endswith("/download"):
-        key = qs.get("key")
+        key = qs.get("key")  # uploads/foo.txt
         if not key:
             return _resp(400, {"message": "key required"})
-
         out_key = "outputs/correction.txt"
+
         try:
-            # 存在チェック
-            s3.head_object(Bucket=BUCKET, Key=out_key)
+            head_input  = s3.head_object(Bucket=BUCKET, Key=key)
+            head_output = s3.head_object(Bucket=BUCKET, Key=out_key)
         except s3.exceptions.ClientError as e:
-            if e.response["ResponseMetadata"]["HTTPStatusCode"] == 404:
+            # input または output が無ければ「まだ準備中」
+            if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
                 return _resp(404, {"message": "not ready"})
             raise
 
+        # 出力がアップロード時刻より前ならまだ更新されていない
+        if head_output["LastModified"] < head_input["LastModified"]:
+            return _resp(404, {"message": "not ready"})
+
         url = _presigned_get(out_key)
         return _resp(200, {"url": url})
-
-    return _resp(404, {"message": "unknown path"})
 
 def _safe(name: str) -> str:
     return urllib.parse.quote_plus(name, safe="")
