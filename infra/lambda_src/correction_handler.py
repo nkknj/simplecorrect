@@ -42,7 +42,7 @@ def handler(event, _):
                 correction = resp["output"]["message"]["content"][0]["text"]
                 correction = correction.split('【Start】')[1].split('【End】')[0]
                 outputtext = outputtext + correction + '\n'
-                outputtext = outputtext + f'LOG\ntext=\n{t}'
+                outputtext = outputtext
 
         out_key = "outputs/correction.txt"
         s3.put_object(Bucket=bucket, Key=out_key,
