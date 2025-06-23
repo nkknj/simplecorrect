@@ -24,7 +24,7 @@ def correct_text(text):
             inferenceConfig={"maxTokens": 800},
     )
     corrected = resp["output"]["message"]["content"][0]["text"]
-    if '【Start】' in correction:
+    if '【Start】' in corrected:
         corrected = corrected.split('【Start】')[1]
     corrected = corrected.split('【End】')[0]
     return corrected
