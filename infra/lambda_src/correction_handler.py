@@ -35,6 +35,7 @@ def extract_in_flags(text, START='【Start】', END='【End】'):
 
 def correct_text(text):
     corrected = remove_filler(text)
+    corrected = refine_text(corrected)
     return corrected
 
 def remove_filler(text, MODEL_ID=MODEL_ID):
@@ -49,7 +50,21 @@ def remove_filler(text, MODEL_ID=MODEL_ID):
     )
     corrected = resp["output"]["message"]["content"][0]["text"]
     corrected = extract_in_flags(corrected)
-    return corrected    
+    return corrected
+
+def refine_text(text, MODEL_ID=MODEL_ID):
+    user_message = f"下記の書き起こされた文章の中で、ほぼ確実に誤変換と思われるものを適切な語で補完して得られる文を、【Start】【End】で括って出力してください。\n\n{text}"
+    resp = bedrock.converse(
+            modelId=MODEL_ID,
+            messages=[{
+                "role": "user",
+                "content": [{"text": user_message}]
+            }],
+            inferenceConfig={"maxTokens": 800},
+    )
+    corrected = resp["output"]["message"]["content"][0]["text"]
+    corrected = extract_in_flags(corrected)
+    return corrected
 
 def handler(event, _):
     for rec in event["Records"]:
