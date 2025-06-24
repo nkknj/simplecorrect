@@ -34,6 +34,10 @@ def extract_in_flags(text, START='【Start】', END='【End】'):
         return out
 
 def correct_text(text):
+    corrected = remove_filler(text)
+    return corrected
+
+def remove_filler(text, MODEL_ID=MODEL_ID):
     user_message = f"次に示す文章から、「あー」「えー」などのフィラーを削除したものを、【Start】【End】で括って出力してください。\n\n{text}"
     resp = bedrock.converse(
             modelId=MODEL_ID,
@@ -45,7 +49,7 @@ def correct_text(text):
     )
     corrected = resp["output"]["message"]["content"][0]["text"]
     corrected = extract_in_flags(corrected)
-    return corrected
+    return corrected    
 
 def handler(event, _):
     for rec in event["Records"]:
