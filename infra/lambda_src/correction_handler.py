@@ -13,6 +13,26 @@ def digitonly(text):
             return False
     return True
 
+def extract_in_flags(text, START='【Start】', END='【End】'):
+    if not START in corrected:
+        return text.split(END)[0]
+    if not END in corrected:
+        return text.split(START)[1]
+    cand = text.split(START)
+    cand = [c.split(END)[0] for c in cand if END in c]
+    if len(cand) == 0:
+        return text
+    elif len(cand) == 1:
+        return cand[0]
+    else:
+        max_length = 0
+        out = ''
+        for c in cand:
+            if len(c) > max_length:
+                out = c
+                max_length = len(c)
+        return out
+
 def correct_text(text):
     user_message = f"次に示す文章から、「あー」「えー」などのフィラーを削除したものを、【Start】【End】で括って出力してください。\n\n{text}"
     resp = bedrock.converse(
@@ -24,9 +44,7 @@ def correct_text(text):
             inferenceConfig={"maxTokens": 800},
     )
     corrected = resp["output"]["message"]["content"][0]["text"]
-    if '【Start】' in corrected:
-        corrected = corrected.split('【Start】')[1]
-    corrected = corrected.split('【End】')[0]
+    corrected = extract_in_flags(corrected)
     return corrected
 
 def handler(event, _):
