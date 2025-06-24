@@ -14,9 +14,9 @@ def digitonly(text):
     return True
 
 def extract_in_flags(text, START='【Start】', END='【End】'):
-    if not START in corrected:
+    if not START in text:
         return text.split(END)[0]
-    if not END in corrected:
+    if not END in text:
         return text.split(START)[1]
     cand = text.split(START)
     cand = [c.split(END)[0] for c in cand if END in c]
