@@ -13,7 +13,32 @@ def digitonly(text):
             return False
     return True
 
+def extract_in_flags(text, START='【Start】', END='【End】'):
+    if not START in text:
+        return text.split(END)[0]
+    if not END in text:
+        return text.split(START)[1]
+    cand = text.split(START)
+    cand = [c.split(END)[0] for c in cand if END in c]
+    if len(cand) == 0:
+        return text
+    elif len(cand) == 1:
+        return cand[0]
+    else:
+        max_length = 0
+        out = ''
+        for c in cand:
+            if len(c) > max_length:
+                out = c
+                max_length = len(c)
+        return out
+
 def correct_text(text):
+    corrected = remove_filler(text)
+    corrected = refine_text(corrected)
+    return corrected
+
+def remove_filler(text, MODEL_ID=MODEL_ID):
     user_message = f"次に示す文章から、「あー」「えー」などのフィラーを削除したものを、【Start】【End】で括って出力してください。\n\n{text}"
     resp = bedrock.converse(
             modelId=MODEL_ID,
@@ -24,9 +49,21 @@ def correct_text(text):
             inferenceConfig={"maxTokens": 800},
     )
     corrected = resp["output"]["message"]["content"][0]["text"]
-    if '【Start】' in corrected:
-        corrected = corrected.split('【Start】')[1]
-    corrected = corrected.split('【End】')[0]
+    corrected = extract_in_flags(corrected)
+    return corrected
+
+def refine_text(text, MODEL_ID=MODEL_ID):
+    user_message = f"次に示す文章が読みやすくなるように、無駄な繰り返しや関係のない間投詞を削除したものを、【Start】【End】で括って出力してください。\n\n{text}"
+    resp = bedrock.converse(
+            modelId=MODEL_ID,
+            messages=[{
+                "role": "user",
+                "content": [{"text": user_message}]
+            }],
+            inferenceConfig={"maxTokens": 800},
+    )
+    corrected = resp["output"]["message"]["content"][0]["text"]
+    corrected = extract_in_flags(corrected)
     return corrected
 
 def handler(event, _):
