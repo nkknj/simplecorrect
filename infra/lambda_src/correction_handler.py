@@ -53,7 +53,7 @@ def remove_filler(text, MODEL_ID=MODEL_ID):
     return corrected
 
 def refine_text(text, MODEL_ID=MODEL_ID):
-    user_message = f"下記の書き起こされた文章の中で、ほぼ確実に誤変換と思われるものを適切な語で補完して得られる文を、【Start】【End】で括って出力してください。\n\n{text}"
+    user_message = f"次に示す文章が読みやすくなるように、無駄な繰り返しや関係のない間投詞を削除したものを、【Start】【End】で括って出力してください。\n\n{text}"
     resp = bedrock.converse(
             modelId=MODEL_ID,
             messages=[{
